@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"myjob/config"
 	"net/http"
+	"myjob/controllers"
 
 	"github.com/labstack/echo/v4"
 )
@@ -19,6 +20,8 @@ func main() {
 	e.GET("/", func(c echo.Context) error {
 		return c.String(http.StatusOK, "Hello, World! I am Waleed. Database is connected successfully!")
 	})
+	e.POST("/api/register", controllers.Register)
+
 
 	// Start server
 	e.Logger.Fatal(e.Start(":1323"))
