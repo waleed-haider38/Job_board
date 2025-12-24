@@ -21,6 +21,7 @@ func main() {
 		return c.String(http.StatusOK, "Hello, World! I am Waleed. Database is connected successfully!")
 	})
 	e.POST("/api/register", controllers.Register)
+	e.POST("/api/login", controllers.Login)
 
 
 	// Start server

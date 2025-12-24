@@ -7,6 +7,7 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 	"github.com/labstack/echo/v4"
+	"github.com/golang-jwt/jwt/v5"
 	"myjob/models"
 	"myjob/config"
 )
@@ -17,6 +18,89 @@ type RegisterInput struct {
 	Password string `json:"password"`
 	Role     string `json:"role"` // client se milega
 }
+
+
+
+// LoginInput struct
+type LoginInput struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+// JWT Claims (team standard)
+type JwtCustomClaims struct {
+	UserID int    `json:"user_id"`
+	Email  string `json:"email"`
+	Role   string `json:"role"`
+	jwt.RegisteredClaims
+}
+
+func Login(c echo.Context) error {
+	input := new(LoginInput)
+	if err := c.Bind(input); err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"message": "Invalid input",
+		})
+	}
+
+	db := config.ConnectDB()
+
+	// Get user from DB
+	user := models.User{}
+	err := db.QueryRow(
+		`SELECT user_id, email, password_hash, role 
+		 FROM users 
+		 WHERE email = $1 AND is_active = true`,
+		input.Email,
+	).Scan(&user.UserID, &user.Email, &user.PasswordHash, &user.Role)
+
+	if err != nil {
+		return c.JSON(http.StatusUnauthorized, echo.Map{
+			"message": "Invalid email or password",
+		})
+	}
+
+	// Compare password
+	if err := bcrypt.CompareHashAndPassword(
+		[]byte(user.PasswordHash),
+		[]byte(input.Password),
+	); err != nil {
+		return c.JSON(http.StatusUnauthorized, echo.Map{
+			"message": "Invalid email or password",
+		})
+	}
+
+	// Create JWT claims
+	claims := &JwtCustomClaims{
+		UserID: user.UserID,
+		Email:  user.Email,
+		Role:   user.Role,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(72 * time.Hour)),
+		},
+	}
+
+	// Generate token
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	tokenString, err := token.SignedString([]byte("secret"))
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"message": "Could not generate token",
+		})
+	}
+
+	// Success response
+	return c.JSON(http.StatusOK, echo.Map{
+		"token": tokenString,
+		"user": echo.Map{
+			"id":    user.UserID,
+			"email": user.Email,
+			"role":  user.Role,
+		},
+	})
+}
+
+
 
 // Register handler
 func Register(c echo.Context) error {
