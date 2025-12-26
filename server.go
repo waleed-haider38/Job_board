@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"myjob/config"
 	"net/http"
-	"myjob/controllers"
+	"myjob/controllers" 
+	"myjob/middleware" 
 
 	"github.com/labstack/echo/v4"
 )
@@ -23,6 +24,9 @@ func main() {
 	e.POST("/api/register", controllers.Register)
 	e.POST("/api/login", controllers.Login)
 
+	api := e.Group("/api")
+	api.Use(middleware.JWTMiddleware)
+	api.GET("/me", controllers.Me)
 
 	// Start server
 	e.Logger.Fatal(e.Start(":1323"))

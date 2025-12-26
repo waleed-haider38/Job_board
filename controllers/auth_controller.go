@@ -35,6 +35,11 @@ type JwtCustomClaims struct {
 	jwt.RegisteredClaims
 }
 
+
+// Bind binds the path params , query params and the request body into provided type.
+//The new built-in function allocates memory. The first argument is a type, not a value, and the value returned is a pointer to a newly allocated zero value of that type.
+
+
 func Login(c echo.Context) error {
 	input := new(LoginInput)
 	if err := c.Bind(input); err != nil {
@@ -47,11 +52,15 @@ func Login(c echo.Context) error {
 
 	// Get user from DB
 	user := models.User{}
+
+	//QueryRow is used to return single row of data from the database.
 	err := db.QueryRow(
 		`SELECT user_id, email, password_hash, role 
 		 FROM users 
 		 WHERE email = $1 AND is_active = true`,
 		input.Email,
+
+	//Scan copies the columns from the matched row into the values.
 	).Scan(&user.UserID, &user.Email, &user.PasswordHash, &user.Role)
 
 	if err != nil {
@@ -61,6 +70,7 @@ func Login(c echo.Context) error {
 	}
 
 	// Compare password
+	//CompareHashAndPassword compares a bcrypt hashed password with its possible plaintext equivalent. Returns nil on success, or an error on failure.
 	if err := bcrypt.CompareHashAndPassword(
 		[]byte(user.PasswordHash),
 		[]byte(input.Password),
@@ -81,6 +91,8 @@ func Login(c echo.Context) error {
 	}
 
 	// Generate token
+	//NewWithClaims creates a new Token with the specified signing method and claims.
+	//SignedString creates and returns a complete, signed JWT. The token is signed using the SigningMethod specified in the token.
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString, err := token.SignedString([]byte("secret"))
 	if err != nil {
