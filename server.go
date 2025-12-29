@@ -17,13 +17,17 @@ func main() {
 	db := config.ConnectDB()
 
 	// Connection to database using GORM.
-	config.ConnectGorm()
+	config.ConnectGorm(e)
 	fmt.Println(db)
 
 	// Example: you can use db in handlers
 	e.GET("/", func(c echo.Context) error {
 		return c.String(http.StatusOK, "Hello, World! I am Waleed. Database is connected successfully!")
-	})
+	})	
+	e.GET("/user", func(c echo.Context) error {
+		return c.String(http.StatusOK, "Assalam-o-Alaikum! I am Waleed.")
+	})	
+
 	// To register a User.
 	e.POST("/api/register", controllers.Register)
 	//To login a User.

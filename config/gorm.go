@@ -1,7 +1,7 @@
 package config
 
 import (
-	"log"
+	"github.com/labstack/echo/v4"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -10,19 +10,16 @@ import (
 
 var GormDB *gorm.DB
 
-func ConnectGorm() {
+func ConnectGorm(e *echo.Echo) {
+    dsn := "postgres://postgres:waleedhaider@localhost:5432/jobboard?sslmode=disable"
+    db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+        DisableForeignKeyConstraintWhenMigrating: true,
+        Logger: logger.Default.LogMode(logger.Info),
+    })
+    if err != nil {
+        e.Logger.Fatal("Failed to connect to database with GORM:", err)
+    }
 
-	dsn := "postgres://postgres:waleedhaider@localhost:5432/jobboard?sslmode=disable"
-
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-		DisableForeignKeyConstraintWhenMigrating: true,
-		Logger: logger.Default.LogMode(logger.Info),
-	})
-
-	if err != nil {
-		log.Fatal(" Failed to connect to database with GORM:", err)
-	}
-
-	GormDB = db
-	log.Println(" GORM database connected successfully")
+    GormDB = db
+    e.Logger.Info("GORM database connected successfully")
 }
