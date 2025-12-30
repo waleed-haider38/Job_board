@@ -81,6 +81,18 @@ func main() {
 	e.PUT("/skills/:id", controllers.UpdateSkill)
 	e.DELETE("/skills/:id", controllers.DeleteSkill)
 
+	// Job seeker skills route
+	e.POST("/job_seekers/skills", controllers.AddSkillToJobSeeker)
+	e.GET("/job_seekers/:id/skills", controllers.GetSkillsOfJobSeeker)
+	e.DELETE("/job_seekers/:jobSeekerID/skills/:skillID", controllers.RemoveSkillFromJobSeeker)
+
+	// CRUD for company
+	e.POST("/companies", controllers.CreateCompany)
+	e.GET("/companies", controllers.GetCompanies)
+	e.GET("/companies/:id", controllers.GetCompanyByID)
+	e.PUT("/companies/:id", controllers.UpdateCompany)
+	e.DELETE("/companies/:id", controllers.DeleteCompany)
+
 	// Start server
 	e.Logger.Fatal(e.Start(":1323"))
 }
