@@ -53,6 +53,12 @@ func main() {
 	e.PUT("/employers/:id", controllers.UpdateEmployer)
 	e.DELETE("/employers/:id", controllers.DeleteEmployer)
 
+	// Jobs CRUD routes
+	e.POST("/jobs", controllers.CreateJob)
+	e.GET("/jobs", controllers.GetJobs)
+	e.GET("/jobs/:id", controllers.GetJobByID)
+	e.PUT("/jobs/:id", controllers.UpdateJob)
+	e.DELETE("/jobs/:id", controllers.DeleteJob)
 
 
 	// Start server
