@@ -60,6 +60,12 @@ func main() {
 	e.PUT("/jobs/:id", controllers.UpdateJob)
 	e.DELETE("/jobs/:id", controllers.DeleteJob)
 
+	//Job Seekers k routes
+	e.POST("/job-seekers", controllers.CreateJobSeeker)
+	e.GET("/job-seekers", controllers.GetJobSeekers)
+	e.GET("/job-seekers/:id", controllers.GetJobSeekerByID)
+	e.PUT("/job-seekers/:id", controllers.UpdateJobSeeker)
+	e.DELETE("/job-seekers/:id", controllers.DeleteJobSeeker)
 
 	// Start server
 	e.Logger.Fatal(e.Start(":1323"))
