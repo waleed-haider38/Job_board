@@ -67,6 +67,13 @@ func main() {
 	e.PUT("/job-seekers/:id", controllers.UpdateJobSeeker)
 	e.DELETE("/job-seekers/:id", controllers.DeleteJobSeeker)
 
+	//Application CRUD k routes
+	e.POST("/applications", controllers.CreateApplication)
+	e.GET("/applications", controllers.GetApplications)
+	e.GET("/applications/:id", controllers.GetApplicationByID)
+	e.PUT("/applications/:id", controllers.UpdateApplication)
+	e.DELETE("/applications/:id", controllers.DeleteApplication)
+
 	// Start server
 	e.Logger.Fatal(e.Start(":1323"))
 }
