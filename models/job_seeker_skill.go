@@ -5,8 +5,8 @@ type JobSeekerSkill struct {
 	SkillID     int `gorm:"column:skill_id;primaryKey" json:"skill_id"`
 
 	// 🔗 Relations
-	JobSeeker JobSeeker `gorm:"foreignKey:JobSeekerID"`
-	Skill     Skill     `gorm:"foreignKey:SkillID"`
+	JobSeeker JobSeeker `gorm:"foreignKey:JobSeekerID;references:JobSeekerID"` // ensure references correct PK
+	Skill     Skill     `gorm:"foreignKey:SkillID;references:SkillID"`
 }
 
 func (JobSeekerSkill) TableName() string {

@@ -74,6 +74,13 @@ func main() {
 	e.PUT("/applications/:id", controllers.UpdateApplication)
 	e.DELETE("/applications/:id", controllers.DeleteApplication)
 
+	//Skill CRUD k routes
+	e.POST("/skills", controllers.CreateSkill)
+	e.GET("/skills", controllers.GetSkills)
+	e.GET("/skills/:id", controllers.GetSkillByID)
+	e.PUT("/skills/:id", controllers.UpdateSkill)
+	e.DELETE("/skills/:id", controllers.DeleteSkill)
+
 	// Start server
 	e.Logger.Fatal(e.Start(":1323"))
 }
