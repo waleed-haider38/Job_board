@@ -61,6 +61,7 @@ func CreateUser(c echo.Context) error {
 	return c.JSON(http.StatusCreated, user)
 }
 
+//Get User
 
 func GetUsers(c echo.Context) error {
 	db := config.GormDB
@@ -74,6 +75,8 @@ func GetUsers(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, users)
 }
+
+//Get User by ID
 
 func GetUserByID(c echo.Context) error {
 	db := config.GormDB
@@ -90,6 +93,7 @@ func GetUserByID(c echo.Context) error {
 	return c.JSON(http.StatusOK, user)
 }
 
+// Update User
 
 func UpdateUser(c echo.Context) error {
 	db := config.GormDB
@@ -114,6 +118,7 @@ func UpdateUser(c echo.Context) error {
 	return c.JSON(http.StatusOK, user)
 }
 
+// Delete User 
 
 func DeleteUser(c echo.Context) error {
 	db := config.GormDB

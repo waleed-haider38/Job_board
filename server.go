@@ -46,6 +46,14 @@ func main() {
 	e.PUT("/users/:id", controllers.UpdateUser)
 	e.DELETE("/users/:id", controllers.DeleteUser)
 
+	//Employer CRUD Routes
+	e.POST("/employers", controllers.CreateEmployer)
+	e.GET("/employers", controllers.GetEmployers)
+	e.GET("/employers/:id", controllers.GetEmployerByID)
+	e.PUT("/employers/:id", controllers.UpdateEmployer)
+	e.DELETE("/employers/:id", controllers.DeleteEmployer)
+
+
 
 	// Start server
 	e.Logger.Fatal(e.Start(":1323"))
