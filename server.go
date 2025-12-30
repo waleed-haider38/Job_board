@@ -33,11 +33,19 @@ func main() {
 	//To login a User.
 	e.POST("/api/login", controllers.Login)
 
-	// In this route only register user can go.
+	//Only register user can access this route.
 
 	api := e.Group("/api")
 	api.Use(middleware.JWTMiddleware)
 	api.GET("/me", controllers.Me)
+
+	//user CRUD routes
+	e.POST("/users", controllers.CreateUser)
+	e.GET("/users", controllers.GetUsers)
+	e.GET("/users/:id", controllers.GetUserByID)
+	e.PUT("/users/:id", controllers.UpdateUser)
+	e.DELETE("/users/:id", controllers.DeleteUser)
+
 
 	// Start server
 	e.Logger.Fatal(e.Start(":1323"))

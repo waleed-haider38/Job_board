@@ -1,9 +1,11 @@
 package controllers
 
 import (
-	"net/http"
+	//"fmt"
 	"myjob/config"
 	"myjob/models"
+	"net/http"
+	
 
 	"github.com/labstack/echo/v4"
 )
@@ -36,5 +38,94 @@ func Me(c echo.Context) error {
 		"user_id": user.UserID,
 		"email":   user.Email,
 		"role":    user.Role,
+	})
+}
+
+// CREATE USER
+func CreateUser(c echo.Context) error {
+	db := config.GormDB
+	user := new(models.User)
+
+	if err := c.Bind(user); err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"error": err.Error(),
+		})
+	}
+
+	if err := db.Create(user).Error; err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error": err.Error(),
+		})
+	}
+
+	return c.JSON(http.StatusCreated, user)
+}
+
+
+func GetUsers(c echo.Context) error {
+	db := config.GormDB
+	var users []models.User
+
+	if err := db.Find(&users).Error; err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error": err.Error(),
+		})
+	}
+
+	return c.JSON(http.StatusOK, users)
+}
+
+func GetUserByID(c echo.Context) error {
+	db := config.GormDB
+	id := c.Param("id")
+
+	var user models.User
+
+	if err := db.First(&user, id).Error; err != nil {
+		return c.JSON(http.StatusNotFound, echo.Map{
+			"error": "User not found",
+		})
+	}
+
+	return c.JSON(http.StatusOK, user)
+}
+
+
+func UpdateUser(c echo.Context) error {
+	db := config.GormDB
+	id := c.Param("id")
+
+	var user models.User
+
+	if err := db.First(&user, id).Error; err != nil {
+		return c.JSON(http.StatusNotFound, echo.Map{
+			"error": "User not found",
+		})
+	}
+
+	if err := c.Bind(&user); err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"error": err.Error(),
+		})
+	}
+
+	db.Save(&user)
+
+	return c.JSON(http.StatusOK, user)
+}
+
+
+func DeleteUser(c echo.Context) error {
+	db := config.GormDB
+	id := c.Param("id")
+
+	if err := db.Delete(&models.User{}, id).Error; err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error": err.Error(),
+		})
+	}
+
+	return c.JSON(http.StatusOK, echo.Map{
+		"message": "User deleted successfully",
 	})
 }
