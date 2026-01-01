@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"myjob/config"
 	"myjob/models"
+	"myjob/utils"
 
 	"github.com/labstack/echo/v4"
 )
@@ -34,14 +35,41 @@ func CreateJobSeeker(c echo.Context) error {
 // GET all Job Seekers
 func GetJobSeekers(c echo.Context) error {
 	var jobSeekers []models.JobSeeker
+	var total int64
 
-	if err := config.GormDB.Preload("User").Find(&jobSeekers).Error; err != nil {
+	// get pagination values
+	p := utils.GetPagination(c)
+
+	// count total job seekers
+	if err := config.GormDB.
+		Model(&models.JobSeeker{}).
+		Count(&total).Error; err != nil {
+
 		return c.JSON(http.StatusInternalServerError, echo.Map{
 			"error": err.Error(),
 		})
 	}
 
-	return c.JSON(http.StatusOK, jobSeekers)
+	// fetch paginated job seekers with linked user
+	if err := config.GormDB.
+		Preload("User").
+		Limit(p.PerPage).
+		Offset(p.Offset).
+		Find(&jobSeekers).Error; err != nil {
+
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error": err.Error(),
+		})
+	}
+
+	return c.JSON(http.StatusOK, echo.Map{
+		"data": jobSeekers,
+		"meta": echo.Map{
+			"page":     p.Page,
+			"per_page": p.PerPage,
+			"total":    total,
+		},
+	})
 }
 
 

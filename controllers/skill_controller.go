@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"myjob/config"
 	"myjob/models"
+	"myjob/utils"
 
 	"github.com/labstack/echo/v4"
 )
@@ -26,13 +27,38 @@ func CreateSkill(c echo.Context) error {
 // GET all Skills
 func GetSkills(c echo.Context) error {
 	var skills []models.Skill
+	var total int64
 
-	if err := config.GormDB.Find(&skills).Error; err != nil {
+	// get pagination values
+	p := utils.GetPagination(c)
+
+	// count total skills
+	if err := config.GormDB.
+		Model(&models.Skill{}).
+		Count(&total).Error; err != nil {
+
 		return c.JSON(http.StatusInternalServerError, echo.Map{"error": err.Error()})
 	}
 
-	return c.JSON(http.StatusOK, skills)
+	// fetch paginated skills
+	if err := config.GormDB.
+		Limit(p.PerPage).
+		Offset(p.Offset).
+		Find(&skills).Error; err != nil {
+
+		return c.JSON(http.StatusInternalServerError, echo.Map{"error": err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, echo.Map{
+		"data": skills,
+		"meta": echo.Map{
+			"page":     p.Page,
+			"per_page": p.PerPage,
+			"total":    total,
+		},
+	})
 }
+
 
 // GET Skill by ID
 func GetSkillByID(c echo.Context) error {

@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"myjob/config"
 	"myjob/models"
+	"myjob/utils"
 
 	"github.com/labstack/echo/v4"
 )
@@ -27,13 +28,30 @@ func CreateCompany(c echo.Context) error {
 // GET all Companies
 func GetCompanies(c echo.Context) error {
 	var companies []models.Company
+	var total int64
 
-	if err := config.GormDB.Find(&companies).Error; err != nil {
+	p := utils.GetPagination(c)
+
+	config.GormDB.Model(&models.Company{}).Count(&total)
+
+	if err := config.GormDB.
+		Limit(p.PerPage).
+		Offset(p.Offset).
+		Find(&companies).Error; err != nil {
+
 		return c.JSON(http.StatusInternalServerError, echo.Map{"error": err.Error()})
 	}
 
-	return c.JSON(http.StatusOK, companies)
+	return c.JSON(http.StatusOK, echo.Map{
+		"data": companies,
+		"meta": echo.Map{
+			"page":      p.Page,
+			"per_page": p.PerPage,
+			"total":    total,
+		},
+	})
 }
+
 
 // GET single Company by ID
 func GetCompanyByID(c echo.Context) error {

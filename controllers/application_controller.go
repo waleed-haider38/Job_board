@@ -6,10 +6,11 @@ import (
 
 	"myjob/config"
 	"myjob/models"
+	"myjob/utils"
 
 	"github.com/labstack/echo/v4"
 )
-
+// Create Application
 func CreateApplication(c echo.Context) error {
 	app := new(models.Application)
 
@@ -31,12 +32,30 @@ func CreateApplication(c echo.Context) error {
 	return c.JSON(http.StatusCreated, app)
 }
 
+// Get Application
 func GetApplications(c echo.Context) error {
 	var applications []models.Application
+	var total int64
 
+	// get pagination values
+	p := utils.GetPagination(c)
+
+	// count total applications
+	if err := config.GormDB.
+		Model(&models.Application{}).
+		Count(&total).Error; err != nil {
+
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error": err.Error(),
+		})
+	}
+
+	// fetch paginated applications with relations
 	if err := config.GormDB.
 		Preload("Job").
 		Preload("JobSeeker").
+		Limit(p.PerPage).
+		Offset(p.Offset).
 		Find(&applications).Error; err != nil {
 
 		return c.JSON(http.StatusInternalServerError, echo.Map{
@@ -44,8 +63,18 @@ func GetApplications(c echo.Context) error {
 		})
 	}
 
-	return c.JSON(http.StatusOK, applications)
+	return c.JSON(http.StatusOK, echo.Map{
+		"data": applications,
+		"meta": echo.Map{
+			"page":     p.Page,
+			"per_page": p.PerPage,
+			"total":    total,
+		},
+	})
 }
+
+
+// Get Application by ID
 
 func GetApplicationByID(c echo.Context) error {
 	id := c.Param("id")
@@ -64,6 +93,7 @@ func GetApplicationByID(c echo.Context) error {
 	return c.JSON(http.StatusOK, app)
 }
 
+// Update the Application
 
 func UpdateApplication(c echo.Context) error {
 	id := c.Param("id")
@@ -90,6 +120,7 @@ func UpdateApplication(c echo.Context) error {
 	return c.JSON(http.StatusOK, app)
 }
 
+// Delete the Application
 
 func DeleteApplication(c echo.Context) error {
 	id := c.Param("id")

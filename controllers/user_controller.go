@@ -4,8 +4,8 @@ import (
 	//"fmt"
 	"myjob/config"
 	"myjob/models"
+	"myjob/utils"
 	"net/http"
-	
 
 	"github.com/labstack/echo/v4"
 )
@@ -64,16 +64,41 @@ func CreateUser(c echo.Context) error {
 //Get User
 
 func GetUsers(c echo.Context) error {
-	db := config.GormDB
 	var users []models.User
+	var total int64
 
-	if err := db.Find(&users).Error; err != nil {
+	db := config.GormDB
+
+	// Get pagination parameters from query
+	p := utils.GetPagination(c)
+
+	// Count total users
+	if err := db.Model(&models.User{}).Count(&total).Error; err != nil {
 		return c.JSON(http.StatusInternalServerError, echo.Map{
 			"error": err.Error(),
 		})
 	}
 
-	return c.JSON(http.StatusOK, users)
+	// Fetch paginated users
+	if err := db.
+		Limit(p.PerPage).
+		Offset(p.Offset).
+		Find(&users).Error; err != nil {
+
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error": err.Error(),
+		})
+	}
+
+	// Return response with meta
+	return c.JSON(http.StatusOK, echo.Map{
+		"data": users,
+		"meta": echo.Map{
+			"page":     p.Page,
+			"per_page": p.PerPage,
+			"total":    total,
+		},
+	})
 }
 
 //Get User by ID
@@ -118,7 +143,7 @@ func UpdateUser(c echo.Context) error {
 	return c.JSON(http.StatusOK, user)
 }
 
-// Delete User 
+// Delete User
 
 func DeleteUser(c echo.Context) error {
 	db := config.GormDB
