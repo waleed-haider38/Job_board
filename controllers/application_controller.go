@@ -37,23 +37,42 @@ func GetApplications(c echo.Context) error {
 	var applications []models.Application
 	var total int64
 
-	// get pagination values
+	// Pagination
 	p := utils.GetPagination(c)
 
-	// count total applications
-	if err := config.GormDB.
-		Model(&models.Application{}).
-		Count(&total).Error; err != nil {
+	// Query params (filters)
+	jobID := c.QueryParam("job_id")
+	jobSeekerID := c.QueryParam("job_seeker_id")
+	status := c.QueryParam("status")
 
+	// Base query
+	query := config.GormDB.
+		Model(&models.Application{}).
+		Preload("Job").
+		Preload("JobSeeker")
+
+	// Dynamic filters
+	if jobID != "" {
+		query = query.Where("job_id = ?", jobID)
+	}
+
+	if jobSeekerID != "" {
+		query = query.Where("job_seeker_id = ?", jobSeekerID)
+	}
+
+	if status != "" {
+		query = query.Where("status = ?", status)
+	}
+
+	// Count AFTER filters
+	if err := query.Count(&total).Error; err != nil {
 		return c.JSON(http.StatusInternalServerError, echo.Map{
 			"error": err.Error(),
 		})
 	}
 
-	// fetch paginated applications with relations
-	if err := config.GormDB.
-		Preload("Job").
-		Preload("JobSeeker").
+	// Fetch paginated data
+	if err := query.
 		Limit(p.PerPage).
 		Offset(p.Offset).
 		Find(&applications).Error; err != nil {
@@ -63,10 +82,11 @@ func GetApplications(c echo.Context) error {
 		})
 	}
 
+	// Response
 	return c.JSON(http.StatusOK, echo.Map{
 		"data": applications,
 		"meta": echo.Map{
-			"page":     p.Page,
+			"page":      p.Page,
 			"per_page": p.PerPage,
 			"total":    total,
 		},

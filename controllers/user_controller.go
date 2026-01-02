@@ -69,28 +69,48 @@ func GetUsers(c echo.Context) error {
 
 	db := config.GormDB
 
-	// Get pagination parameters from query
+	// Pagination
 	p := utils.GetPagination(c)
 
-	// Count total users
-	if err := db.Model(&models.User{}).Count(&total).Error; err != nil {
-		return c.JSON(http.StatusInternalServerError, echo.Map{
-			"error": err.Error(),
-		})
+	// Query params (search filters)
+	email := c.QueryParam("email")
+	role := c.QueryParam("role")
+	isActive := c.QueryParam("is_active") // "true" / "false"
+
+	// Base query
+	query := db.Model(&models.User{})
+
+	// Dynamic filters
+	if email != "" {
+		query = query.Where("email ILIKE ?", "%"+email+"%")
 	}
 
-	// Fetch paginated users
-	if err := db.
+	if role != "" {
+		query = query.Where("role = ?", role)
+	}
+
+	if isActive != "" {
+		if isActive == "true" {
+			query = query.Where("is_active = ?", true)
+		} else if isActive == "false" {
+			query = query.Where("is_active = ?", false)
+		}
+	}
+
+	// Count AFTER filters
+	if err := query.Count(&total).Error; err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{"error": err.Error()})
+	}
+
+	// Fetch paginated data
+	if err := query.
 		Limit(p.PerPage).
 		Offset(p.Offset).
 		Find(&users).Error; err != nil {
-
-		return c.JSON(http.StatusInternalServerError, echo.Map{
-			"error": err.Error(),
-		})
+		return c.JSON(http.StatusInternalServerError, echo.Map{"error": err.Error()})
 	}
 
-	// Return response with meta
+	// Return response
 	return c.JSON(http.StatusOK, echo.Map{
 		"data": users,
 		"meta": echo.Map{
@@ -100,6 +120,7 @@ func GetUsers(c echo.Context) error {
 		},
 	})
 }
+
 
 //Get User by ID
 

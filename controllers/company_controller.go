@@ -30,18 +30,49 @@ func GetCompanies(c echo.Context) error {
 	var companies []models.Company
 	var total int64
 
+	// Pagination
 	p := utils.GetPagination(c)
 
-	config.GormDB.Model(&models.Company{}).Count(&total)
+	// Query params (filters)
+	name := c.QueryParam("name")
+	product := c.QueryParam("product")
+	employerID := c.QueryParam("employer_id")
 
-	if err := config.GormDB.
+	// Base query (table: companies)
+	query := config.GormDB.Model(&models.Company{})
+
+	// Apply filters dynamically
+	if name != "" {
+		query = query.Where("company_name ILIKE ?", "%"+name+"%")
+	}
+
+	if product != "" {
+		query = query.Where("company_product ILIKE ?", "%"+product+"%")
+	}
+
+	if employerID != "" {
+		query = query.Where("employer_id = ?", employerID)
+	}
+
+	// Count AFTER filters (important)
+	if err := query.Count(&total).Error; err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error": err.Error(),
+		})
+	}
+
+	// Fetch paginated data
+	if err := query.
 		Limit(p.PerPage).
 		Offset(p.Offset).
 		Find(&companies).Error; err != nil {
 
-		return c.JSON(http.StatusInternalServerError, echo.Map{"error": err.Error()})
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error": err.Error(),
+		})
 	}
 
+	// Response
 	return c.JSON(http.StatusOK, echo.Map{
 		"data": companies,
 		"meta": echo.Map{

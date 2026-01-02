@@ -35,32 +35,70 @@ func GetJobs(c echo.Context) error {
 	var jobs []models.Job
 	var total int64
 
-	// get pagination values
+	// Pagination
 	p := utils.GetPagination(c)
 
-	// count total jobs
-	if err := config.GormDB.
-		Model(&models.Job{}).
-		Count(&total).Error; err != nil {
+	// Query params (filters)
+	title := c.QueryParam("title")
+	location := c.QueryParam("location")
+	jobType := c.QueryParam("job_type")
+	employerID := c.QueryParam("employer_id")
+	salaryMin := c.QueryParam("salary_min")
+	salaryMax := c.QueryParam("salary_max")
 
-		return c.JSON(http.StatusInternalServerError, echo.Map{"error": err.Error()})
+	// Base query
+	query := config.GormDB.
+		Model(&models.Job{}).
+		Preload("Employer")
+
+	// Dynamic filters
+	if title != "" {
+		query = query.Where("title ILIKE ?", "%"+title+"%")
 	}
 
-	// fetch paginated jobs with employer info
-	err := config.GormDB.
-		Preload("Employer").
+	if location != "" {
+		query = query.Where("job_location ILIKE ?", "%"+location+"%")
+	}
+
+	if jobType != "" {
+		query = query.Where("job_type = ?", jobType)
+	}
+
+	if employerID != "" {
+		query = query.Where("employer_id = ?", employerID)
+	}
+
+	// Salary range filters
+	if salaryMin != "" {
+		query = query.Where("salary_min >= ?", salaryMin)
+	}
+
+	if salaryMax != "" {
+		query = query.Where("salary_max <= ?", salaryMax)
+	}
+
+	// Count AFTER filters
+	if err := query.Count(&total).Error; err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error": err.Error(),
+		})
+	}
+
+	// Fetch paginated jobs
+	if err := query.
 		Limit(p.PerPage).
 		Offset(p.Offset).
-		Find(&jobs).Error; 
-		if err != nil {
+		Find(&jobs).Error; err != nil {
 
-		return c.JSON(http.StatusInternalServerError, echo.Map{"error": err.Error()})
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error": err.Error(),
+		})
 	}
 
 	return c.JSON(http.StatusOK, echo.Map{
 		"data": jobs,
 		"meta": echo.Map{
-			"page":     p.Page,
+			"page":      p.Page,
 			"per_page": p.PerPage,
 			"total":    total,
 		},

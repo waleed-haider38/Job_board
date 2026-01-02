@@ -31,38 +31,52 @@ func GetSkillsOfJobSeeker(c echo.Context) error {
 	var skills []models.JobSeekerSkill
 	var total int64
 
-	// get pagination values
+	// Pagination
 	p := utils.GetPagination(c)
 
-	// count total records
-	if err := config.GormDB.
-		Model(&models.JobSeekerSkill{}).
-		Where("job_seeker_id = ?", jobSeekerID).
-		Count(&total).Error; err != nil {
+	// Query param (search)
+	skill := c.QueryParam("skill") // e.g. ?skill=go
 
-		return c.JSON(http.StatusInternalServerError, echo.Map{"error": err.Error()})
+	// Base query (job_seeker_id is mandatory)
+	query := config.GormDB.
+		Model(&models.JobSeekerSkill{}).
+		Joins("JOIN skills ON skills.skill_id = job_seeker_skills.skill_id").
+		Where("job_seeker_skills.job_seeker_id = ?", jobSeekerID).
+		Preload("Skill")
+
+	// Optional skill-name search
+	if skill != "" {
+		query = query.Where("skills.skill_name ILIKE ?", "%"+skill+"%")
 	}
 
-	// fetch paginated data
-	if err := config.GormDB.
-		Preload("Skill").
-		Where("job_seeker_id = ?", jobSeekerID).
+	// Count AFTER filters
+	if err := query.Count(&total).Error; err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error": err.Error(),
+		})
+	}
+
+	// Fetch paginated data
+	if err := query.
 		Limit(p.PerPage).
 		Offset(p.Offset).
 		Find(&skills).Error; err != nil {
 
-		return c.JSON(http.StatusInternalServerError, echo.Map{"error": err.Error()})
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error": err.Error(),
+		})
 	}
 
 	return c.JSON(http.StatusOK, echo.Map{
 		"data": skills,
 		"meta": echo.Map{
-			"page":     p.Page,
+			"page":      p.Page,
 			"per_page": p.PerPage,
 			"total":    total,
 		},
 	})
 }
+
 
 
 // DELETE a skill from a Job Seeker

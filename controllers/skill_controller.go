@@ -29,35 +29,48 @@ func GetSkills(c echo.Context) error {
 	var skills []models.Skill
 	var total int64
 
-	// get pagination values
+	// Pagination
 	p := utils.GetPagination(c)
 
-	// count total skills
-	if err := config.GormDB.
-		Model(&models.Skill{}).
-		Count(&total).Error; err != nil {
+	// Query param (search by skill name)
+	skillName := c.QueryParam("name") // ?name=go
 
-		return c.JSON(http.StatusInternalServerError, echo.Map{"error": err.Error()})
+	// Base query
+	query := config.GormDB.Model(&models.Skill{})
+
+	// Dynamic filter
+	if skillName != "" {
+		query = query.Where("skill_name ILIKE ?", "%"+skillName+"%")
 	}
 
-	// fetch paginated skills
-	if err := config.GormDB.
+	// Count AFTER filters
+	if err := query.Count(&total).Error; err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error": err.Error(),
+		})
+	}
+
+	// Fetch paginated skills
+	if err := query.
 		Limit(p.PerPage).
 		Offset(p.Offset).
 		Find(&skills).Error; err != nil {
 
-		return c.JSON(http.StatusInternalServerError, echo.Map{"error": err.Error()})
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error": err.Error(),
+		})
 	}
 
 	return c.JSON(http.StatusOK, echo.Map{
 		"data": skills,
 		"meta": echo.Map{
-			"page":     p.Page,
-			"per_page": p.PerPage,
-			"total":    total,
+			"page":      p.Page,
+			"per_page":  p.PerPage,
+			"total":     total,
 		},
 	})
 }
+
 
 
 // GET Skill by ID

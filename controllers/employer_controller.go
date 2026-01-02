@@ -33,36 +33,61 @@ func GetEmployers(c echo.Context) error {
 	var employers []models.Employer
 	var total int64
 
-	// get pagination values
+	// Pagination
 	p := utils.GetPagination(c)
 
-	// count total employers
-	if err := config.GormDB.
-		Model(&models.Employer{}).
-		Count(&total).Error; err != nil {
+	// Query params (filters)
+	name := c.QueryParam("name")
+	email := c.QueryParam("email")
+	userID := c.QueryParam("user_id")
 
-		return c.JSON(http.StatusInternalServerError, echo.Map{"error": err.Error()})
+	// Base query
+	query := config.GormDB.
+		Model(&models.Employer{}).
+		Preload("User")
+
+	// Dynamic filters
+	if name != "" {
+		query = query.Where("employer_name ILIKE ?", "%"+name+"%")
 	}
 
-	// fetch paginated employers with linked user
-	if err := config.GormDB.
-		Preload("User").
+	if email != "" {
+		query = query.Where("employer_email ILIKE ?", "%"+email+"%")
+	}
+
+	if userID != "" {
+		query = query.Where("user_id = ?", userID)
+	}
+
+	// Count AFTER filters
+	if err := query.Count(&total).Error; err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error": err.Error(),
+		})
+	}
+
+	// Fetch paginated data
+	if err := query.
 		Limit(p.PerPage).
 		Offset(p.Offset).
 		Find(&employers).Error; err != nil {
 
-		return c.JSON(http.StatusInternalServerError, echo.Map{"error": err.Error()})
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error": err.Error(),
+		})
 	}
 
+	// Response
 	return c.JSON(http.StatusOK, echo.Map{
 		"data": employers,
 		"meta": echo.Map{
-			"page":     p.Page,
+			"page":      p.Page,
 			"per_page": p.PerPage,
 			"total":    total,
 		},
 	})
 }
+
 
 
 // GET single Employer by ID

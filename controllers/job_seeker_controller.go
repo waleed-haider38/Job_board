@@ -37,22 +37,36 @@ func GetJobSeekers(c echo.Context) error {
 	var jobSeekers []models.JobSeeker
 	var total int64
 
-	// get pagination values
+	// Pagination
 	p := utils.GetPagination(c)
 
-	// count total job seekers
-	if err := config.GormDB.
-		Model(&models.JobSeeker{}).
-		Count(&total).Error; err != nil {
+	// Query params (filters)
+	name := c.QueryParam("name")
+	userID := c.QueryParam("user_id")
 
+	// Base query
+	query := config.GormDB.
+		Model(&models.JobSeeker{}).
+		Preload("User")
+
+	// Dynamic filters
+	if name != "" {
+		query = query.Where("full_name ILIKE ?", "%"+name+"%")
+	}
+
+	if userID != "" {
+		query = query.Where("user_id = ?", userID)
+	}
+
+	// Count AFTER filters
+	if err := query.Count(&total).Error; err != nil {
 		return c.JSON(http.StatusInternalServerError, echo.Map{
 			"error": err.Error(),
 		})
 	}
 
-	// fetch paginated job seekers with linked user
-	if err := config.GormDB.
-		Preload("User").
+	// Fetch paginated job seekers
+	if err := query.
 		Limit(p.PerPage).
 		Offset(p.Offset).
 		Find(&jobSeekers).Error; err != nil {
@@ -65,12 +79,13 @@ func GetJobSeekers(c echo.Context) error {
 	return c.JSON(http.StatusOK, echo.Map{
 		"data": jobSeekers,
 		"meta": echo.Map{
-			"page":     p.Page,
+			"page":      p.Page,
 			"per_page": p.PerPage,
 			"total":    total,
 		},
 	})
 }
+
 
 
 // GET Job Seeker by ID
