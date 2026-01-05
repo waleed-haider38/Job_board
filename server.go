@@ -74,6 +74,29 @@ func main() {
 	e.PUT("/applications/:id", controllers.UpdateApplication)
 	e.DELETE("/applications/:id", controllers.DeleteApplication)
 
+	// Job Seeker applies to a job (JWT REQUIRED)
+	e.POST("/jobs/apply", controllers.ApplyToJob, middleware.JWTMiddleware)
+
+	// Job Seeker views their own applications (JWT REQUIRED)
+	e.GET("/my-applications", controllers.GetMyApplications, middleware.JWTMiddleware)
+
+	// Employer views applications for a job
+	e.GET(
+		"/jobs/:job_id/applications",
+		controllers.GetApplicationsForJob,
+		middleware.JWTMiddleware,
+		middleware.EmployerOnly,
+	)
+
+	// Employer updates application status
+	e.PATCH(
+		"/applications/:id/status",
+		controllers.UpdateApplicationStatus,
+		middleware.JWTMiddleware,
+		middleware.EmployerOnly,
+	)
+
+
 	//Skill CRUD k routes
 	e.POST("/skills", controllers.CreateSkill)
 	e.GET("/skills", controllers.GetSkills)

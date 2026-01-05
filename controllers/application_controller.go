@@ -8,8 +8,152 @@ import (
 	"myjob/models"
 	"myjob/utils"
 
+	//"github.com/golang-jwt/jwt/v5"
 	"github.com/labstack/echo/v4"
 )
+
+// Apply Jobs
+func ApplyToJob(c echo.Context) error {
+
+	//  JWT se user_id nikalo
+	userID := c.Get("user_id").(int)
+
+	// user → job seeker mapping
+	var jobSeeker models.JobSeeker
+	if err := config.GormDB.
+		Where("user_id = ?", userID).
+		First(&jobSeeker).Error; err != nil {
+
+		return c.JSON(http.StatusForbidden, echo.Map{
+			"error": "Only job seekers can apply",
+		})
+	}
+
+	type ApplyInput struct {
+		JobID       int    `json:"job_id"`
+		CoverLetter string `json:"cover_letter"`
+	}
+
+	input := new(ApplyInput)
+	if err := c.Bind(input); err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": err.Error()})
+	}
+
+	//  Duplicate apply check
+	var existing models.Application
+	if err := config.GormDB.
+		Where("job_id = ? AND job_seeker_id = ?", input.JobID, jobSeeker.JobSeekerID).
+		First(&existing).Error; err == nil {
+
+		return c.JSON(http.StatusConflict, echo.Map{
+			"error": "You have already applied to this job",
+		})
+	}
+
+	application := models.Application{
+		JobID:       input.JobID,
+		JobSeekerID: jobSeeker.JobSeekerID,
+		CoverLetter: input.CoverLetter,
+		Status:      "applied",
+	}
+
+	if err := config.GormDB.Create(&application).Error; err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{"error": err.Error()})
+	}
+
+	return c.JSON(http.StatusCreated, application)
+}
+
+
+
+//Application Detail code when we know who is the applicant
+// Get applications of a specific Job Seeker
+func GetMyApplications(c echo.Context) error {
+
+	userID := c.Get("user_id").(int)
+
+	var jobSeeker models.JobSeeker
+	if err := config.GormDB.
+		Where("user_id = ?", userID).
+		First(&jobSeeker).Error; err != nil {
+
+		return c.JSON(http.StatusForbidden, echo.Map{
+			"error": "Job seeker not found",
+		})
+	}
+
+	var applications []models.Application
+
+	if err := config.GormDB.
+		Where("job_seeker_id = ?", jobSeeker.JobSeekerID).
+		Preload("Job").
+		Find(&applications).Error; err != nil {
+
+		return c.JSON(http.StatusInternalServerError, echo.Map{"error": err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, applications)
+}
+
+
+// Get all applications for a specific job (Employer view)
+func GetApplicationsForJob(c echo.Context) error {
+	jobID := c.Param("job_id")
+
+	var applications []models.Application
+
+	if err := config.GormDB.
+		Where("job_id = ?", jobID).
+		Preload("JobSeeker").
+		Find(&applications).Error; err != nil {
+
+		return c.JSON(http.StatusInternalServerError, echo.Map{"error": err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, applications)
+}
+
+// Update the status of an application (Employer action)
+func UpdateApplicationStatus(c echo.Context) error {
+	id := c.Param("id")
+
+	type StatusInput struct {
+		Status string `json:"status"`
+	}
+
+	input := new(StatusInput)
+	if err := c.Bind(input); err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": err.Error()})
+	}
+
+	allowed := map[string]bool{
+		"reviewed":    true,
+		"shortlisted": true,
+		"rejected":    true,
+		"hired":       true,
+	}
+
+	if !allowed[input.Status] {
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"error": "Invalid status",
+		})
+	}
+
+	if err := config.GormDB.
+		Model(&models.Application{}).
+		Where("application_id = ?", id).
+		Update("status", input.Status).Error; err != nil {
+
+		return c.JSON(http.StatusInternalServerError, echo.Map{"error": err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, echo.Map{
+		"message": "Application status updated",
+	})
+}
+
+
+
 // Create Application
 func CreateApplication(c echo.Context) error {
 	app := new(models.Application)
@@ -86,13 +230,12 @@ func GetApplications(c echo.Context) error {
 	return c.JSON(http.StatusOK, echo.Map{
 		"data": applications,
 		"meta": echo.Map{
-			"page":      p.Page,
+			"page":     p.Page,
 			"per_page": p.PerPage,
 			"total":    total,
 		},
 	})
 }
-
 
 // Get Application by ID
 
