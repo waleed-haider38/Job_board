@@ -47,7 +47,8 @@ func GetJobSeekers(c echo.Context) error {
 	// Base query
 	query := config.GormDB.
 		Model(&models.JobSeeker{}).
-		Preload("User")
+		Preload("User").
+		Preload("Skills")
 
 	// Dynamic filters
 	if name != "" {
@@ -93,7 +94,8 @@ func GetJobSeekerByID(c echo.Context) error {
 	id := c.Param("id")
 	var jobSeeker models.JobSeeker
 
-	if err := config.GormDB.Preload("User").First(&jobSeeker, id).Error; err != nil {
+	if err := config.GormDB.Preload("User").
+	Preload("Skills").First(&jobSeeker, id).Error; err != nil {
 		return c.JSON(http.StatusNotFound, echo.Map{
 			"error": "Job seeker not found",
 		})

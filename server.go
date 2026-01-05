@@ -105,11 +105,13 @@ func main() {
 	e.DELETE("/skills/:id", controllers.DeleteSkill)
 
 	// Job seeker skills route
-	e.POST("/job_seekers/skills", controllers.AddSkillToJobSeeker)
-	e.GET("/job_seekers/:id/skills", controllers.GetSkillsOfJobSeeker)
-	e.DELETE("/job_seekers/:jobSeekerID/skills/:skillID", controllers.RemoveSkillFromJobSeeker)
+	jobSeeker := e.Group("/job-seeker", middleware.JWTMiddleware)
 
-	// CRUD for company
+	jobSeeker.POST("/skills", controllers.AddSkillToJobSeeker)
+	jobSeeker.GET("/skills", controllers.GetMySkills)
+	jobSeeker.DELETE("/skills/:skill_id", controllers.RemoveSkillFromJobSeeker)
+
+	// CRUD routes for company
 	e.POST("/companies", controllers.CreateCompany)
 	e.GET("/companies", controllers.GetCompanies)
 	e.GET("/companies/:id", controllers.GetCompanyByID)

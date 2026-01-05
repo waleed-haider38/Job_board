@@ -15,6 +15,8 @@ type JobSeeker struct {
 
 	// 🔗 Relation
 	User User `gorm:"foreignKey:UserID"`
+	Skills []Skill `gorm:"many2many:job_seeker_skills;joinForeignKey:JobSeekerID;JoinReferences:SkillID" json:"skills"`
+
 }
 
 func (JobSeeker) TableName() string {

@@ -132,6 +132,27 @@ func UpdateApplicationStatus(c echo.Context) error {
 		"rejected":    true,
 		"hired":       true,
 	}
+	var app models.Application
+	config.GormDB.First(&app, id)
+
+	// Current status
+	switch app.Status {
+	case "pending":
+		if input.Status != "reviewed" {
+			return c.JSON(http.StatusBadRequest, echo.Map{"error": "Invalid status transition from pending"})
+		}
+	case "reviewed":
+		if input.Status != "shortlisted" && input.Status != "rejected" {
+			return c.JSON(http.StatusBadRequest, echo.Map{"error": "Invalid status transition from reviewed"})
+		}
+	case "shortlisted":
+		if input.Status != "hired" && input.Status != "rejected" {
+			return c.JSON(http.StatusBadRequest, echo.Map{"error": "Invalid status transition from shortlisted"})
+		}
+	default:
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Cannot change status from " + app.Status})
+	}
+
 
 	if !allowed[input.Status] {
 		return c.JSON(http.StatusBadRequest, echo.Map{
