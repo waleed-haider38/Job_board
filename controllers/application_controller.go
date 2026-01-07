@@ -15,10 +15,11 @@ import (
 // Apply Jobs
 func ApplyToJob(c echo.Context) error {
 
-	//  JWT se user_id nikalo
-	userID := c.Get("user_id").(int)
+	userID, ok := c.Get("user_id").(int)
+	if !ok {
+		return c.JSON(http.StatusUnauthorized, echo.Map{"error": "Invalid token"})
+	}
 
-	// user → job seeker mapping
 	var jobSeeker models.JobSeeker
 	if err := config.GormDB.
 		Where("user_id = ?", userID).
@@ -39,7 +40,15 @@ func ApplyToJob(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, echo.Map{"error": err.Error()})
 	}
 
-	//  Duplicate apply check
+	//  Job existence check (REQUIRED)
+	var job models.Job
+	if err := config.GormDB.First(&job, input.JobID).Error; err != nil {
+		return c.JSON(http.StatusNotFound, echo.Map{
+			"error": "Job not found",
+		})
+	}
+
+	// Duplicate apply check
 	var existing models.Application
 	if err := config.GormDB.
 		Where("job_id = ? AND job_seeker_id = ?", input.JobID, jobSeeker.JobSeekerID).
@@ -63,6 +72,7 @@ func ApplyToJob(c echo.Context) error {
 
 	return c.JSON(http.StatusCreated, application)
 }
+
 
 
 
@@ -98,10 +108,37 @@ func GetMyApplications(c echo.Context) error {
 
 // Get all applications for a specific job (Employer view)
 func GetApplicationsForJob(c echo.Context) error {
+
+	userID, ok := c.Get("user_id").(int)
+	if !ok {
+		return c.JSON(http.StatusUnauthorized, echo.Map{"error": "Invalid token"})
+	}
+
 	jobID := c.Param("job_id")
 
-	var applications []models.Application
+	// Employer fetch
+	var employer models.Employer
+	if err := config.GormDB.
+		Where("user_id = ?", userID).
+		First(&employer).Error; err != nil {
 
+		return c.JSON(http.StatusForbidden, echo.Map{
+			"error": "Employer not found",
+		})
+	}
+
+	// Job ownership check
+	var job models.Job
+	if err := config.GormDB.
+		Where("job_id = ? AND employer_id = ?", jobID, employer.EmployerID).
+		First(&job).Error; err != nil {
+
+		return c.JSON(http.StatusForbidden, echo.Map{
+			"error": "You are not allowed to view applications for this job",
+		})
+	}
+
+	var applications []models.Application
 	if err := config.GormDB.
 		Where("job_id = ?", jobID).
 		Preload("JobSeeker").
@@ -113,8 +150,15 @@ func GetApplicationsForJob(c echo.Context) error {
 	return c.JSON(http.StatusOK, applications)
 }
 
+
 // Update the status of an application (Employer action)
 func UpdateApplicationStatus(c echo.Context) error {
+
+	userID, ok := c.Get("user_id").(int)
+	if !ok {
+		return c.JSON(http.StatusUnauthorized, echo.Map{"error": "Invalid token"})
+	}
+
 	id := c.Param("id")
 
 	type StatusInput struct {
@@ -126,43 +170,42 @@ func UpdateApplicationStatus(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, echo.Map{"error": err.Error()})
 	}
 
+	// Employer fetch
+	var employer models.Employer
+	if err := config.GormDB.
+		Where("user_id = ?", userID).
+		First(&employer).Error; err != nil {
+
+		return c.JSON(http.StatusForbidden, echo.Map{
+			"error": "Employer not found",
+		})
+	}
+
+	// Application + Job ownership check
+	var app models.Application
+	if err := config.GormDB.
+		Joins("JOIN jobs ON jobs.job_id = applications.job_id").
+		Where("applications.application_id = ? AND jobs.employer_id = ?", id, employer.EmployerID).
+		First(&app).Error; err != nil {
+
+		return c.JSON(http.StatusForbidden, echo.Map{
+			"error": "You are not allowed to update this application",
+		})
+	}
+
 	allowed := map[string]bool{
 		"reviewed":    true,
 		"shortlisted": true,
 		"rejected":    true,
 		"hired":       true,
 	}
-	var app models.Application
-	config.GormDB.First(&app, id)
-
-	// Current status
-	switch app.Status {
-	case "pending":
-		if input.Status != "reviewed" {
-			return c.JSON(http.StatusBadRequest, echo.Map{"error": "Invalid status transition from pending"})
-		}
-	case "reviewed":
-		if input.Status != "shortlisted" && input.Status != "rejected" {
-			return c.JSON(http.StatusBadRequest, echo.Map{"error": "Invalid status transition from reviewed"})
-		}
-	case "shortlisted":
-		if input.Status != "hired" && input.Status != "rejected" {
-			return c.JSON(http.StatusBadRequest, echo.Map{"error": "Invalid status transition from shortlisted"})
-		}
-	default:
-		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Cannot change status from " + app.Status})
-	}
-
 
 	if !allowed[input.Status] {
-		return c.JSON(http.StatusBadRequest, echo.Map{
-			"error": "Invalid status",
-		})
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Invalid status"})
 	}
 
 	if err := config.GormDB.
-		Model(&models.Application{}).
-		Where("application_id = ?", id).
+		Model(&app).
 		Update("status", input.Status).Error; err != nil {
 
 		return c.JSON(http.StatusInternalServerError, echo.Map{"error": err.Error()})

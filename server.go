@@ -20,65 +20,72 @@ func main() {
 	config.ConnectGorm(e)
 	fmt.Println(db)
 
-	// Example: you can use db in handlers
+	// Health check routes
 	e.GET("/", func(c echo.Context) error {
-		return c.String(http.StatusOK, "Hello, World! I am Waleed. Database is connected successfully!")
-	})	
+		return c.String(http.StatusOK, "Hello, World! Database connected successfully!")
+	})
 	e.GET("/user", func(c echo.Context) error {
-		return c.String(http.StatusOK, "Assalam-o-Alaikum! I am Waleed.")
-	})	
+		return c.String(http.StatusOK, "Assalam-o-Alaikum!")
+	})
 
-	// To register a User.
+	// Auth routes
 	e.POST("/api/register", controllers.Register)
-	//To login a User.
 	e.POST("/api/login", controllers.Login)
 
-	//Only register user can access this route.
-
-	api := e.Group("/api")
-	api.Use(middleware.JWTMiddleware)
+	// Protected API group
+	api := e.Group("/api", middleware.JWTMiddleware)
 	api.GET("/me", controllers.Me)
 
-	//user CRUD routes
+	// User CRUD
 	e.POST("/users", controllers.CreateUser)
 	e.GET("/users", controllers.GetUsers)
 	e.GET("/users/:id", controllers.GetUserByID)
 	e.PUT("/users/:id", controllers.UpdateUser)
 	e.DELETE("/users/:id", controllers.DeleteUser)
 
-	//Employer CRUD Routes
+	// Employer CRUD
 	e.POST("/employers", controllers.CreateEmployer)
 	e.GET("/employers", controllers.GetEmployers)
 	e.GET("/employers/:id", controllers.GetEmployerByID)
 	e.PUT("/employers/:id", controllers.UpdateEmployer)
 	e.DELETE("/employers/:id", controllers.DeleteEmployer)
 
-	// Jobs CRUD routes
+	// Job CRUD
 	e.POST("/jobs", controllers.CreateJob)
 	e.GET("/jobs", controllers.GetJobs)
 	e.GET("/jobs/:id", controllers.GetJobByID)
 	e.PUT("/jobs/:id", controllers.UpdateJob)
 	e.DELETE("/jobs/:id", controllers.DeleteJob)
 
-	//Job Seekers k routes
+	// Job Seeker CRUD
 	e.POST("/job-seekers", controllers.CreateJobSeeker)
 	e.GET("/job-seekers", controllers.GetJobSeekers)
 	e.GET("/job-seekers/:id", controllers.GetJobSeekerByID)
 	e.PUT("/job-seekers/:id", controllers.UpdateJobSeeker)
 	e.DELETE("/job-seekers/:id", controllers.DeleteJobSeeker)
 
-	//Application CRUD k routes
+	// Application CRUD (basic)
 	e.POST("/applications", controllers.CreateApplication)
 	e.GET("/applications", controllers.GetApplications)
 	e.GET("/applications/:id", controllers.GetApplicationByID)
 	e.PUT("/applications/:id", controllers.UpdateApplication)
 	e.DELETE("/applications/:id", controllers.DeleteApplication)
 
-	// Job Seeker applies to a job (JWT REQUIRED)
-	e.POST("/jobs/apply", controllers.ApplyToJob, middleware.JWTMiddleware)
+	// Job Seeker applies to a job
+	e.POST(
+		"/jobs/apply",
+		controllers.ApplyToJob,
+		middleware.JWTMiddleware,
+		middleware.JobSeekerOnly,
+	)
 
-	// Job Seeker views their own applications (JWT REQUIRED)
-	e.GET("/my-applications", controllers.GetMyApplications, middleware.JWTMiddleware)
+	// Job Seeker views their own applications
+	e.GET(
+		"/my-applications",
+		controllers.GetMyApplications,
+		middleware.JWTMiddleware,
+		middleware.JobSeekerOnly,
+	)
 
 	// Employer views applications for a job
 	e.GET(
@@ -96,22 +103,24 @@ func main() {
 		middleware.EmployerOnly,
 	)
 
-
-	//Skill CRUD k routes
+	// Skills CRUD
 	e.POST("/skills", controllers.CreateSkill)
 	e.GET("/skills", controllers.GetSkills)
 	e.GET("/skills/:id", controllers.GetSkillByID)
 	e.PUT("/skills/:id", controllers.UpdateSkill)
 	e.DELETE("/skills/:id", controllers.DeleteSkill)
 
-	// Job seeker skills route
-	jobSeeker := e.Group("/job-seeker", middleware.JWTMiddleware)
-
+	// Job Seeker skills (protected + role based)
+	jobSeeker := e.Group(
+		"/job-seeker",
+		middleware.JWTMiddleware,
+		middleware.JobSeekerOnly,
+	)
 	jobSeeker.POST("/skills", controllers.AddSkillToJobSeeker)
 	jobSeeker.GET("/skills", controllers.GetMySkills)
 	jobSeeker.DELETE("/skills/:skill_id", controllers.RemoveSkillFromJobSeeker)
 
-	// CRUD routes for company
+	// Company CRUD
 	e.POST("/companies", controllers.CreateCompany)
 	e.GET("/companies", controllers.GetCompanies)
 	e.GET("/companies/:id", controllers.GetCompanyByID)
