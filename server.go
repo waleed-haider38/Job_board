@@ -57,6 +57,9 @@ func main() {
 	e.PUT("/jobs/:id", controllers.UpdateJob)
 	e.DELETE("/jobs/:id", controllers.DeleteJob)
 
+	// Add skill to a job (Employer only)
+	e.POST("/jobs/:job_id/skills", controllers.AddSkillToJob, middleware.JWTMiddleware, middleware.EmployerOnly)
+
 	// Job Seeker CRUD
 	e.POST("/job-seekers", controllers.CreateJobSeeker)
 	e.GET("/job-seekers", controllers.GetJobSeekers)
