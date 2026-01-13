@@ -32,64 +32,73 @@ func CreateJob(c echo.Context) error {
 
 // GET all Jobs
 func GetJobs(c echo.Context) error {
-    var jobs []models.Job
-    var total int64
+	var jobs []models.Job
+	var total int64
 
-    // Pagination
-    p := utils.GetPagination(c)
+	// Pagination
+	p := utils.GetPagination(c)
 
-    // Filters
-    title := c.QueryParam("title")
-    location := c.QueryParam("location")
-    jobType := c.QueryParam("job_type")
-    employerID := c.QueryParam("employer_id")
-    salaryMin := c.QueryParam("salary_min")
-    salaryMax := c.QueryParam("salary_max")
+	// Filters
+	title := c.QueryParam("title")
+	location := c.QueryParam("location")
+	jobType := c.QueryParam("job_type")
+	companyID := c.QueryParam("company_id")
+	salaryMin := c.QueryParam("salary_min")
+	salaryMax := c.QueryParam("salary_max")
 
-    // Base query
-    query := config.GormDB.Model(&models.Job{}).
-        Preload("Employer").
-        Preload("Skills")
+	// Base query
+	query := config.GormDB.Model(&models.Job{}).
+		Preload("Company").
+		Preload("Skills")
 
-    // Apply filters dynamically
-    if title != "" {
-        query = query.Where("title ILIKE ?", "%"+title+"%")
-    }
-    if location != "" {
-        query = query.Where("job_location ILIKE ?", "%"+location+"%")
-    }
-    if jobType != "" {
-        query = query.Where("job_type = ?", jobType)
-    }
-    if employerID != "" {
-        query = query.Where("employer_id = ?", employerID)
-    }
-    if salaryMin != "" {
-        query = query.Where("salary_min >= ?", salaryMin)
-    }
-    if salaryMax != "" {
-        query = query.Where("salary_max <= ?", salaryMax)
-    }
+	// Apply filters
+	if title != "" {
+		query = query.Where("title ILIKE ?", "%"+title+"%")
+	}
+	if location != "" {
+		query = query.Where("job_location ILIKE ?", "%"+location+"%")
+	}
+	if jobType != "" {
+		query = query.Where("job_type = ?", jobType)
+	}
+	if companyID != "" {
+		query = query.Where("company_id = ?", companyID)
+	}
+	if salaryMin != "" {
+		query = query.Where("salary_min >= ?", salaryMin)
+	}
+	if salaryMax != "" {
+		query = query.Where("salary_max <= ?", salaryMax)
+	}
 
-    // Count total records after filters
-    if err := query.Count(&total).Error; err != nil {
-        return c.JSON(http.StatusInternalServerError, echo.Map{"error": err.Error()})
-    }
+	// Count
+	if err := query.Count(&total).Error; err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error": err.Error(),
+		})
+	}
 
-    // Fetch paginated jobs
-    if err := query.Limit(p.PerPage).Offset(p.Offset).Find(&jobs).Error; err != nil {
-        return c.JSON(http.StatusInternalServerError, echo.Map{"error": err.Error()})
-    }
+	// Fetch data
+	if err := query.
+		Limit(p.PerPage).
+		Offset(p.Offset).
+		Find(&jobs).Error; err != nil {
 
-    return c.JSON(http.StatusOK, echo.Map{
-        "data": jobs,
-        "meta": echo.Map{
-            "page":     p.Page,
-            "per_page": p.PerPage,
-            "total":    total,
-        },
-    })
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error": err.Error(),
+		})
+	}
+
+	return c.JSON(http.StatusOK, echo.Map{
+		"data": jobs,
+		"meta": echo.Map{
+			"page":     p.Page,
+			"per_page": p.PerPage,
+			"total":    total,
+		},
+	})
 }
+
 
 
 // GET single Job by ID
@@ -97,12 +106,19 @@ func GetJobByID(c echo.Context) error {
 	id := c.Param("id")
 	var job models.Job
 
-	if err := config.GormDB.Preload("Employer").First(&job, id).Error; err != nil {
-		return c.JSON(http.StatusNotFound, echo.Map{"error": "Job not found"})
+	if err := config.GormDB.
+		Preload("Company").
+		Preload("Skills").
+		First(&job, id).Error; err != nil {
+
+		return c.JSON(http.StatusNotFound, echo.Map{
+			"error": "Job not found",
+		})
 	}
 
 	return c.JSON(http.StatusOK, job)
 }
+
 
 // UPDATE Job
 func UpdateJob(c echo.Context) error {

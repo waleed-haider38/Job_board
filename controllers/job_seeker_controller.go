@@ -32,6 +32,7 @@ func CreateJobSeeker(c echo.Context) error {
 }
 
 
+
 // GET all Job Seekers
 func GetJobSeekers(c echo.Context) error {
 	var jobSeekers []models.JobSeeker
@@ -44,19 +45,21 @@ func GetJobSeekers(c echo.Context) error {
 	name := c.QueryParam("name")
 	userID := c.QueryParam("user_id")
 
-	// Base query
+	// Base query with JOIN to filter only users with role = 'job_seeker'
 	query := config.GormDB.
 		Model(&models.JobSeeker{}).
+		Joins("JOIN users ON users.user_id = job_seekers.user_id").
+		Where("users.role = ?", "job_seeker").
 		Preload("User").
 		Preload("Skills")
 
 	// Dynamic filters
 	if name != "" {
-		query = query.Where("full_name ILIKE ?", "%"+name+"%")
+		query = query.Where("job_seekers.full_name ILIKE ?", "%"+name+"%")
 	}
 
 	if userID != "" {
-		query = query.Where("user_id = ?", userID)
+		query = query.Where("job_seekers.user_id = ?", userID)
 	}
 
 	// Count AFTER filters
@@ -80,12 +83,13 @@ func GetJobSeekers(c echo.Context) error {
 	return c.JSON(http.StatusOK, echo.Map{
 		"data": jobSeekers,
 		"meta": echo.Map{
-			"page":      p.Page,
+			"page":     p.Page,
 			"per_page": p.PerPage,
 			"total":    total,
 		},
 	})
 }
+
 
 
 

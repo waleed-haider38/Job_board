@@ -15,8 +15,10 @@ import (
 // RegisterInput struct
 type RegisterInput struct {
 	Email    string `json:"email"`
+	Name string `json:"name"`
 	Password string `json:"password"`
 	Role     string `json:"role"` // client se milega
+	ResumeURL  string `json:"resume_url"`
 }
 
 
@@ -118,46 +120,107 @@ func Login(c echo.Context) error {
 func Register(c echo.Context) error {
 	input := new(RegisterInput)
 	if err := c.Bind(input); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"message": "Invalid input"})
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"message": "Invalid input",
+		})
 	}
 
-	db := config.ConnectDB() // tumhara DB connection
+	// role validation
+	if input.Role != "employer" && input.Role != "job_seeker" {
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"message": "Invalid role",
+		})
+	}
 
-	// Check if email already exists
+	db := config.ConnectDB()
+
+	// check email exists
 	var exists bool
-	err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE email=$1)", input.Email).Scan(&exists)
+	err := db.QueryRow(
+		"SELECT EXISTS(SELECT 1 FROM users WHERE email=$1)",
+		input.Email,
+	).Scan(&exists)
+
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"message": "DB error"})
+		return c.JSON(http.StatusInternalServerError, echo.Map{"message": "DB error"})
 	}
 	if exists {
-		return c.JSON(http.StatusConflict, map[string]string{"message": "Email already registered"})
+		return c.JSON(http.StatusConflict, echo.Map{"message": "Email already registered"})
 	}
 
-	// Hash password
+	// hash password
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Error hashing password"})
+		return c.JSON(http.StatusInternalServerError, echo.Map{"message": "Password hashing failed"})
 	}
 
-	// Map to User model
-	user := &models.User{
-		Email:        input.Email,
-		PasswordHash: string(hashedPassword),
-		Role:         input.Role,
-		IsActive:     true,
-		CreatedAt:    time.Now(),
-		UpdatedAt:    time.Now(),
-	}
-
-	// Insert user into DB
-	_, err = db.Exec(
-		`INSERT INTO users (email, password_hash, role, is_active, created_at, updated_at)
-		 VALUES ($1,$2,$3,$4,$5,$6)`,
-		user.Email, user.PasswordHash, user.Role, user.IsActive, user.CreatedAt, user.UpdatedAt,
-	)
+	//  START TRANSACTION
+	tx, err := db.Begin()
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Error saving user"})
+		return c.JSON(http.StatusInternalServerError, echo.Map{"message": "Could not start transaction"})
 	}
 
-	return c.JSON(http.StatusCreated, map[string]string{"message": "registered successfully"})
+	var userID int
+
+	// 1️ insert into users & get user_id
+	err = tx.QueryRow(
+		`INSERT INTO users (email, password_hash, role, is_active, created_at, updated_at)
+		 VALUES ($1,$2,$3,true,NOW(),NOW())
+		 RETURNING user_id`,
+		input.Email,
+		string(hashedPassword),
+		input.Role,
+	).Scan(&userID)
+
+	if err != nil {
+		tx.Rollback()
+		return c.JSON(http.StatusInternalServerError, echo.Map{"message": "Error creating user"})
+	}
+
+	// 2️ role based insert
+	if input.Role == "employer" {
+		_, err = tx.Exec(
+			`INSERT INTO employers (user_id, employer_name,employer_email)
+			 VALUES ($1,$2,$3)`,
+			userID,
+			input.Name,
+			input.Email,
+		)
+		if err != nil {
+			tx.Rollback()
+			return c.JSON(http.StatusInternalServerError, echo.Map{
+				"message": "Error creating employer profile",
+			})
+		}
+	}
+
+	if input.Role == "job_seeker" {
+		_, err = tx.Exec(
+			`INSERT INTO job_seekers (user_id,full_name,resume_url)
+			 VALUES ($1,$2,$3)`,
+			userID,
+			input.Name,
+			input.ResumeURL,
+		)
+		if err != nil {
+			tx.Rollback()
+			return c.JSON(http.StatusInternalServerError, echo.Map{
+				"message": "Error creating job seeker profile",
+			})
+		}
+	}
+
+	//  COMMIT
+	if err := tx.Commit(); err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"message": "Transaction failed",
+		})
+	}
+
+	return c.JSON(http.StatusCreated, echo.Map{
+		"message": "Registered successfully",
+		"user_id": userID,
+		"role":    input.Role,
+	})
 }
+
