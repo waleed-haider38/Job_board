@@ -62,7 +62,7 @@ func main() {
 	job.DELETE("/jobs/:id", controllers.DeleteJob)
 
 	// Add skill to a job (Employer only)
-	e.POST("/jobs/:job_id/skills", controllers.AddSkillToJob, middleware.JWTMiddleware, middleware.EmployerOnly)
+	job.POST("/jobs/:job_id/skills", controllers.AddSkillToJob)
 
 	// Job Seeker CRUD
 	e.POST("/job-seekers", controllers.CreateJobSeeker)
@@ -128,11 +128,15 @@ func main() {
 	jobSeeker.DELETE("/skills/:skill_id", controllers.RemoveSkillFromJobSeeker)
 
 	// Company CRUD
-	e.POST("/companies", controllers.CreateCompany)
+	comp := e.Group("/comp")
+
+	comp.Use(middleware.JWTMiddleware)
+	comp.Use(middleware.EmployerOnly)
+	comp.POST("/companies", controllers.CreateCompany)
 	e.GET("/companies", controllers.GetCompanies)
-	e.GET("/companies/:id", controllers.GetCompanyByID)
-	e.PUT("/companies/:id", controllers.UpdateCompany)
-	e.DELETE("/companies/:id", controllers.DeleteCompany)
+	comp.GET("/companies/:id", controllers.GetCompanyByID)
+	comp.PUT("/companies/:id", controllers.UpdateCompany)
+	comp.DELETE("/companies/:id", controllers.DeleteCompany)
 
 	// Start server
 	e.Logger.Fatal(e.Start(":1323"))
