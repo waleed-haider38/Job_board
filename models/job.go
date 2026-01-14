@@ -17,9 +17,9 @@ type Job struct {
 	CreatedAt time.Time `gorm:"column:created_at"`
 	UpdatedAt time.Time `gorm:"column:updated_at"`
 
-	Company Company `gorm:"foreignKey:CompanyID;references:CompanyID" json:"company"`
 
 	//  NOW GORM WILL USE: job_id + skill_id
+	Company *Company `gorm:"foreignKey:CompanyID;references:CompanyID" json:"company"`
 	Skills []Skill `gorm:"many2many:job_skills" json:"skills"`
 }
 

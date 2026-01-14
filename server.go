@@ -50,12 +50,16 @@ func main() {
 	e.PUT("/employers/:id", controllers.UpdateEmployer)
 	e.DELETE("/employers/:id", controllers.DeleteEmployer)
 
+	job := e.Group("/emp")
+	job.Use(middleware.JWTMiddleware)
+	job.Use(middleware.EmployerOnly)
+
 	// Job CRUD
-	e.POST("/jobs", controllers.CreateJob)
+	job.POST("/jobs", controllers.CreateJob)
 	e.GET("/jobs", controllers.GetJobs)
 	e.GET("/jobs/:id", controllers.GetJobByID)
-	e.PUT("/jobs/:id", controllers.UpdateJob)
-	e.DELETE("/jobs/:id", controllers.DeleteJob)
+	job.PUT("/jobs/:id", controllers.UpdateJob)
+	job.DELETE("/jobs/:id", controllers.DeleteJob)
 
 	// Add skill to a job (Employer only)
 	e.POST("/jobs/:job_id/skills", controllers.AddSkillToJob, middleware.JWTMiddleware, middleware.EmployerOnly)
