@@ -72,11 +72,11 @@ func main() {
 	e.DELETE("/job-seekers/:id", controllers.DeleteJobSeeker)
 
 	// Application CRUD (basic)
-	e.POST("/applications", controllers.CreateApplication)
-	e.GET("/applications", controllers.GetApplications)
-	e.GET("/applications/:id", controllers.GetApplicationByID)
-	e.PUT("/applications/:id", controllers.UpdateApplication)
-	e.DELETE("/applications/:id", controllers.DeleteApplication)
+	// e.POST("/applications", controllers.CreateApplication)
+	// e.GET("/applications", controllers.GetApplications)
+	// e.GET("/applications/:id", controllers.GetApplicationByID)
+	// e.PUT("/applications/:id", controllers.UpdateApplication)
+	// e.DELETE("/applications/:id", controllers.DeleteApplication)
 
 	// Job Seeker applies to a job
 	e.POST(
