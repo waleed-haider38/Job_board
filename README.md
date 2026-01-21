@@ -9,6 +9,13 @@
 
 This is a RESTful API for a Job Board platform. Employers can post jobs, and job seekers can apply for them. The API provides authentication, CRUD operations for jobs and applications, and proper role-based access control.
 
+## How to run the project
+
+To run this project you need to configure your database variable in config folder. Where we have 2 files db.go and gorm.go. after that you just need to run the command
+
+-- go run server.go
+after we will be ready to start our project on localhost:1323
+
 ---
 
 ## Technical Stack
@@ -24,28 +31,33 @@ This is a RESTful API for a Job Board platform. Employers can post jobs, and job
 ## Features
 
 ### Authentication
+
 - User registration (job_seeker or employer role)
 - JWT-based login
 - Protected routes based on role
 
 ### Employer Features
+
 - Company profile management
 - Job posting CRUD
 - View applications for their jobs
 - Update application status
 
 ### Job Seeker Features
+
 - Profile management with skills
 - Browse/search jobs
 - Apply to jobs
 - View own applications
 
 ### Public Features
+
 - List published jobs with pagination
 - Search and filter jobs
 - View company profiles
 
 ### Application Workflow
+
 - Job seekers apply with a cover letter
 - Employers update status: `pending` → `reviewed` → `shortlisted` → `rejected` / `hired`
 - Prevent duplicate applications
@@ -62,4 +74,3 @@ This is a RESTful API for a Job Board platform. Employers can post jobs, and job
 ---
 
 ## Project Structure
-
