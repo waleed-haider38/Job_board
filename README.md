@@ -1,76 +1,55 @@
-# Job Board API - Backend Project
+# 👋 Hi, I'm Muhammad Waleed Haider
 
-**Duration**: 1 Week  
-**Stack**: Go, Echo, PostgreSQL, JWT
-
----
-
-## Overview
-
-This is a RESTful API for a Job Board platform. Employers can post jobs, and job seekers can apply for them. The API provides authentication, CRUD operations for jobs and applications, and proper role-based access control.
-
-## How to run the project
-
-To run this project you need to configure your database variable in config folder. Where we have 2 files db.go and gorm.go. after that you just need to run the command
-
--- go run server.go
-after we will be ready to start our project on localhost:1323
+💻 **Junior Backend Developer | Go | Django | Laravel**
 
 ---
 
-## Technical Stack
+## 🚀 About Me
 
-- Language: Go 1.21+
-- Framework: Echo v4
-- Database: PostgreSQL
-- Authentication: JWT
-- Testing: Unit tests
+I am a passionate backend developer with hands-on experience in Go (Golang), Django, and Laravel.
+I enjoy building scalable REST APIs, working with databases, and solving real-world problems through clean and efficient code.
 
 ---
 
-## Features
+## 🛠️ Tech Stack
 
-### Authentication
-
-- User registration (job_seeker or employer role)
-- JWT-based login
-- Protected routes based on role
-
-### Employer Features
-
-- Company profile management
-- Job posting CRUD
-- View applications for their jobs
-- Update application status
-
-### Job Seeker Features
-
-- Profile management with skills
-- Browse/search jobs
-- Apply to jobs
-- View own applications
-
-### Public Features
-
-- List published jobs with pagination
-- Search and filter jobs
-- View company profiles
-
-### Application Workflow
-
-- Job seekers apply with a cover letter
-- Employers update status: `pending` → `reviewed` → `shortlisted` → `rejected` / `hired`
-- Prevent duplicate applications
+* **Languages:** Go (Golang), Python, PHP, JavaScript (Basic)
+* **Frameworks:** Echo (Go), Django, Laravel
+* **Databases:** PostgreSQL, MySQL, SQLite
+* **Tools:** Git, GitHub, Docker, Bootstrap
+* **Concepts:** REST APIs, MVC Architecture, Authentication, Middleware
 
 ---
 
-## API Standards
+## 📂 Projects
 
-- RESTful conventions
-- JSON responses with consistent structure
-- Proper HTTP status codes
-- Pagination support (page, per_page, total)
+### 🔹 Job Board API (Go + Echo)
+
+* RESTful API for job posting and applications
+* JWT Authentication & middleware
+* Clean MVC structure
+
+### 🔹 Weather App (Django)
+
+* Real-time weather data using API
+* Error handling and responsive UI
+
+### 🔹 Django Auth System
+
+* Login, Register, Dashboard
+* Session-based authentication
 
 ---
 
-## Project Structure
+## 📈 Currently Learning
+
+* Advanced Go (Golang)
+* System Design basics
+* API Optimization & Performance
+
+---
+
+## 📫 Connect With Me
+
+* GitHub: https://github.com/waleed-haider38
+* LinkedIn: https://www.linkedin.com/in/waleed-haider-507805386/
